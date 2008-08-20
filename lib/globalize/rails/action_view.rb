@@ -36,7 +36,7 @@ module ActionView # :nodoc: all
             template_file_name = @finder.pick_template(template_path_without_extension, template_extension)
           else
             template_extension = @finder.pick_template_extension(template_path).to_s
-            raise_missing_template_exception unless template_extension
+            raise_missing_template_exception(template_path) unless template_extension
             template_file_name = @finder.pick_template(template_path, template_extension)
             template_extension = template_extension.gsub(/^.+\./, '') # strip off any formats
           end
@@ -44,6 +44,9 @@ module ActionView # :nodoc: all
           template_file_name = template_path
           template_extension = template_path.split('.').last
         end
+        
+        raise_missing_template_exception(template_path) if template_file_name.blank?
+        
         pn = Pathname.new(template_file_name)
         dir, filename = pn.dirname, pn.basename('.' + template_extension)
 
@@ -66,6 +69,13 @@ module ActionView # :nodoc: all
         end
         
         @@globalize_path_cache[cache_key] = localized_path.to_s
+      end
+      
+      def raise_missing_template_exception(template_path)
+         full_template_path = template_path.include?('.') ? template_path : "#{template_path}.#{self.template_format}.erb"
+         display_paths = finder.view_paths.join(':')
+         template_type = (template_path =~ /layouts/i) ? 'layout' : 'template'
+         raise(MissingTemplate, "Missing #{template_type} #{full_template_path} in view path #{display_paths}")
       end
 
   end
